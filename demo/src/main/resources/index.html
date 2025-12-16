@@ -1,157 +1,324 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>File Upload and Download</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
+    <title>文件上传工具</title>
+    <!-- 引入Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
 
-       .container {
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            width: 400px;
-            text-align: center;
+    <!-- 配置Tailwind自定义颜色和字体 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#10B981',
+                        neutral: '#6B7280',
+                        danger: '#EF4444',
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                },
+            }
         }
+    </script>
 
-        h1,
-        h2 {
-            color: #333;
-        }
-
-       .upload-section {
-            margin-top: 20px;
-        }
-
-        input[type="file"] {
-            display: none;
-        }
-
-        button {
-            background-color: #007BFF;
-            color: #fff;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-
-        button:hover {
-            background-color: #0056b3;
-        }
-
-        p {
-            color: #777;
-            margin-top: 10px;
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .file-hover {
+                @apply transition-all duration-300 hover:shadow-lg hover:scale-[1.02];
+            }
+            .btn-effect {
+                @apply transform transition-all duration-200 active:scale-95;
+            }
         }
     </style>
 </head>
+<body class="font-inter bg-gray-50 min-h-screen flex flex-col">
+<div class="container mx-auto px-4 py-8 max-w-4xl flex-grow">
+    <header class="mb-10 text-center">
+        <h1 class="text-[clamp(1.8rem,4vw,2.5rem)] font-bold text-gray-800 mb-2">数据处理工具</h1>
+        <p class="text-neutral">选择多个实验数据文件和数据文件，点击确定</p>
+    </header>
 
-<body>
-    <div class="container">
-        <h1>File Upload and Download</h1>
-        <div class="upload-section">
-            <input type="file" id="fileInput1">
-            <button id="uploadButton1">上传原数据文件</button>
-            <p id="uploadedFileName1"></p>
+    <main class="bg-white rounded-xl shadow-md p-6 mb-8 transform transition-all duration-500 hover:shadow-lg">
+        <!-- 文件选择区域 -->
+        <div class="space-y-8">
+            <!-- 多文件选择区域 -->
+            <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xl font-semibold text-gray-800 flex items-center">
+                        <i class="fa fa-files-o text-primary mr-2"></i>实验数据文件选择
+                    </h2>
+                    <span id="multipleFileCount" class="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm">
+              已选择: 0 个文件
+            </span>
+                </div>
+
+                <button id="selectMultipleFiles" class="w-full py-4 px-6 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 font-medium flex items-center justify-center gap-3 file-hover btn-effect">
+                    <i class="fa fa-plus-circle text-xl text-primary"></i>
+                    <span>点击选择多个文件（可多次选择）</span>
+                </button>
+
+                <div id="multipleFilesList" class="border border-gray-200 rounded-lg p-4 max-h-40 overflow-y-auto space-y-2">
+                    <p class="text-neutral text-center italic py-4">尚未选择文件</p>
+                </div>
+            </div>
+
+            <!-- 单文件选择区域 -->
+            <div class="space-y-4 pt-4 border-t border-gray-100">
+                <h2 class="text-xl font-semibold text-gray-800 flex items-center">
+                    <i class="fa fa-file-o text-secondary mr-2"></i>数据文件选择
+                </h2>
+
+                <button id="selectSingleFile" class="w-full py-4 px-6 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 font-medium flex items-center justify-center gap-3 file-hover btn-effect">
+                    <i class="fa fa-upload text-xl text-secondary"></i>
+                    <span>点击选择单个文件（重新选择会替换）</span>
+                </button>
+
+                <div id="singleFileContainer" class="border border-gray-200 rounded-lg p-4 min-h-[60px] flex items-center">
+                    <p id="singleFileInfo" class="text-neutral text-center italic w-full">尚未选择文件</p>
+                </div>
+            </div>
+
+            <!-- 隐藏的文件输入 -->
+            <input type="file" id="multipleFileInput" multiple class="hidden">
+            <input type="file" id="singleFileInput" class="hidden">
         </div>
-        <div class="upload-section">
-            <input type="file" id="fileInput2">
-            <button id="uploadButton2">上传数据库文件</button>
-            <p id="uploadedFileName2"></p>
-        </div>
-        <button id="submitButton">确定</button>
-        <p id="statusMessage"></p>
+    </main>
+
+    <!-- 操作按钮区域 -->
+    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <button id="resetBtn" class="px-8 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium rounded-lg transition-all duration-300 btn-effect flex-1 sm:flex-none">
+            <i class="fa fa-refresh mr-2"></i>重置
+        </button>
+        <button id="submitBtn" class="px-8 py-3 bg-primary hover:bg-primary/90 text-white font-medium rounded-lg transition-all duration-300 btn-effect flex-1 sm:flex-none">
+            <i class="fa fa-check mr-2"></i>确定提交
+        </button>
     </div>
-    <script>
-        const fileInput1 = document.getElementById('fileInput1');
-        const fileInput2 = document.getElementById('fileInput2');
-        const uploadButton1 = document.getElementById('uploadButton1');
-        const uploadButton2 = document.getElementById('uploadButton2');
-        const submitButton = document.getElementById('submitButton');
-        const uploadedFileName1 = document.getElementById('uploadedFileName1');
-        const uploadedFileName2 = document.getElementById('uploadedFileName2');
-        const statusMessage = document.getElementById('statusMessage');
+</div>
 
-        uploadButton1.addEventListener('click', function () {
-            fileInput1.click();
+<!-- 状态提示框 -->
+<div id="toast" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-lg shadow-lg text-white font-medium transition-all duration-300 opacity-0 translate-y-4 pointer-events-none">
+    <span id="toastMessage"></span>
+</div>
+
+<script>
+    // 文件存储变量
+    let multipleFiles = [];
+    let singleFile = null;
+
+    // DOM元素
+    const selectMultipleBtn = document.getElementById('selectMultipleFiles');
+    const selectSingleBtn = document.getElementById('selectSingleFile');
+    const multipleFileInput = document.getElementById('multipleFileInput');
+    const singleFileInput = document.getElementById('singleFileInput');
+    const multipleFilesList = document.getElementById('multipleFilesList');
+    const singleFileInfo = document.getElementById('singleFileInfo');
+    const multipleFileCount = document.getElementById('multipleFileCount');
+    const submitBtn = document.getElementById('submitBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const toast = document.getElementById('toast');
+    const toastMessage = document.getElementById('toastMessage');
+
+    // 显示提示消息
+    function showToast(message, isError = false) {
+        toastMessage.textContent = message;
+        toast.className = `fixed bottom-6 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-lg shadow-lg font-medium transition-all duration-300 opacity-100 translate-y-0`;
+        toast.classList.add(isError ? 'bg-danger' : 'bg-secondary');
+        toast.classList.add('text-white');
+
+        setTimeout(() => {
+            toast.classList.remove('opacity-100', 'translate-y-0');
+            toast.classList.add('opacity-0', 'translate-y-4', 'pointer-events-none');
+        }, 3000);
+    }
+
+    // 更新多文件列表显示
+    function updateMultipleFilesList() {
+        if (multipleFiles.length === 0) {
+            multipleFilesList.innerHTML = '<p class="text-neutral text-center italic py-4">尚未选择文件</p>';
+            multipleFileCount.textContent = '已选择: 0 个文件';
+            return;
+        }
+
+        multipleFileCount.textContent = `已选择: ${multipleFiles.length} 个文件`;
+        multipleFilesList.innerHTML = '';
+
+        multipleFiles.forEach((file, index) => {
+            const fileSize = (file.size / 1024).toFixed(1);
+            const sizeUnit = fileSize > 1024 ? `${(fileSize / 1024).toFixed(1)} MB` : `${fileSize} KB`;
+
+            const fileItem = document.createElement('div');
+            fileItem.className = 'flex items-center justify-between p-2 hover:bg-gray-50 rounded border border-gray-100';
+            fileItem.innerHTML = `
+          <div class="flex items-center gap-3 overflow-hidden">
+            <i class="fa fa-file-o text-primary"></i>
+            <div class="truncate">
+              <p class="font-medium truncate">${file.name}</p>
+              <p class="text-sm text-neutral">${sizeUnit}</p>
+            </div>
+          </div>
+          <button class="text-neutral hover:text-danger transition-colors p-1 remove-file" data-index="${index}">
+            <i class="fa fa-times"></i>
+          </button>
+        `;
+
+            multipleFilesList.appendChild(fileItem);
         });
 
-        uploadButton2.addEventListener('click', function () {
-            fileInput2.click();
+        // 添加删除事件
+        document.querySelectorAll('.remove-file').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const index = parseInt(e.currentTarget.dataset.index);
+                multipleFiles.splice(index, 1);
+                updateMultipleFilesList();
+            });
+        });
+    }
+
+    // 更新单文件显示
+    function updateSingleFileInfo() {
+        if (!singleFile) {
+            singleFileInfo.textContent = '尚未选择文件';
+            singleFileInfo.className = 'text-neutral text-center italic w-full';
+            return;
+        }
+
+        const fileSize = (singleFile.size / 1024).toFixed(1);
+        const sizeUnit = fileSize > 1024 ? `${(fileSize / 1024).toFixed(1)} MB` : `${fileSize} KB`;
+
+        singleFileInfo.innerHTML = `
+        <div class="flex items-center justify-between w-full">
+          <div class="flex items-center gap-3">
+            <i class="fa fa-file-o text-secondary"></i>
+            <div>
+              <p class="font-medium">${singleFile.name}</p>
+              <p class="text-sm text-neutral">${sizeUnit}</p>
+            </div>
+          </div>
+          <button id="removeSingleFile" class="text-neutral hover:text-danger transition-colors p-1">
+            <i class="fa fa-times"></i>
+          </button>
+        </div>
+      `;
+
+        // 添加删除事件
+        document.getElementById('removeSingleFile').addEventListener('click', () => {
+            singleFile = null;
+            updateSingleFileInfo();
+        });
+    }
+
+    // 多文件选择
+    selectMultipleBtn.addEventListener('click', () => {
+        multipleFileInput.click();
+    });
+
+    multipleFileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            // 将新选择的文件添加到数组
+            Array.from(e.target.files).forEach(file => {
+                multipleFiles.push(file);
+            });
+            updateMultipleFilesList();
+            showToast(`已添加 ${e.target.files.length} 个文件`);
+        }
+        // 重置input值，以便可以重复选择相同文件
+        e.target.value = '';
+    });
+
+    // 单文件选择
+    selectSingleBtn.addEventListener('click', () => {
+        singleFileInput.click();
+    });
+
+    singleFileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            singleFile = e.target.files[0];
+            updateSingleFileInfo();
+            showToast(`已选择文件: ${singleFile.name}`);
+        }
+        // 重置input值
+        e.target.value = '';
+    });
+
+    // 提交文件
+    submitBtn.addEventListener('click', async () => {
+        // 检查是否有文件
+        if (multipleFiles.length === 0 && !singleFile) {
+            showToast('请至少选择一个文件', true);
+            return;
+        }
+
+        // 创建FormData对象
+        const formData = new FormData();
+
+        // 添加多文件
+        multipleFiles.forEach((file, index) => {
+            formData.append(`files`, file);
         });
 
-        fileInput1.addEventListener('change', function () {
-            const file = fileInput1.files[0];
-            if (file) {
-                uploadedFileName1.textContent = `Selected file: ${file.name}`;
-            } else {
-                uploadedFileName1.textContent = '';
+        // 添加单文件
+        if (singleFile) {
+            formData.append('file2', singleFile);
+        }
+
+        // 显示加载状态
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i>提交中...';
+
+        try {
+            // 调用后端接口（这里使用模拟请求）
+            const response = await fetch('http://localhost:8080/sjcl/1', {
+                method: 'POST',
+                body: formData,
+                // 注意：不要设置Content-Type，浏览器会自动处理
+            });
+
+            if (!response.ok) {
+                throw new Error('上传失败');
             }
-        });
 
-        fileInput2.addEventListener('change', function () {
-            const file = fileInput2.files[0];
-            if (file) {
-                uploadedFileName2.textContent = `Selected file: ${file.name}`;
-            } else {
-                uploadedFileName2.textContent = '';
-            }
-        });
+            const result = await response.json();
+            showToast('文件上传成功！');
 
-        submitButton.addEventListener('click', async () => {
-            const file1 = fileInput1.files[0];
-            const file2 = fileInput2.files[0];
+            // 重置表单
+            multipleFiles = [];
+            singleFile = null;
+            updateMultipleFilesList();
+            updateSingleFileInfo();
 
-            if (!file1 || !file2) {
-                statusMessage.textContent = '请上传两个文件！';
-                statusMessage.style.color = 'red';
-                return;
-            }
+        } catch (error) {
+            console.error('上传错误:', error);
+            showToast('文件上传失败，请重试', true);
+        } finally {
+            // 恢复按钮状态
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fa fa-check mr-2"></i>确定提交';
+        }
+    });
 
-            const formData = new FormData();
-            formData.append('file1', file1);
-            formData.append('file2', file2);
+    // 重置功能
+    resetBtn.addEventListener('click', () => {
+        multipleFiles = [];
+        singleFile = null;
+        updateMultipleFilesList();
+        updateSingleFileInfo();
+        showToast('已重置选择');
+    });
 
-            try {
-                const response = await fetch('http://localhost:8080/sjcl/1', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = '处理结果';
-                a.click();
-                window.URL.revokeObjectURL(url);
-
-                statusMessage.textContent = '文件上传并下载成功！';
-                statusMessage.style.color = 'green';
-            } catch (error) {
-                statusMessage.textContent = `上传请求错误: ${error}`;
-                statusMessage.style.color = 'red';
-            }
-        });
-    </script>
+    // 初始化显示
+    updateMultipleFilesList();
+    updateSingleFileInfo();
+</script>
 </body>
-
-</html>    
+</html>

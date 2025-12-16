@@ -29,83 +29,85 @@ import java.util.stream.Collectors;
 public class QiuController {
 
     @PostMapping("1")
-    public void qiuSjCl(HttpServletResponse response, @RequestParam("file1") MultipartFile file1, @RequestParam("file2") MultipartFile file2) throws IOException {
-        List<ExcelValue> excelValues = assembleData(file1);
+    public void qiuSjCl(HttpServletResponse response, @RequestParam("files") List<MultipartFile> files,@RequestParam("file2") MultipartFile file2) throws IOException {
+        List<ExcelValue> excelValues = assembleData(files);
         matchDataBaseData(excelValues, file2, response);
 
     }
 
     //处理原始数据
-    public List<ExcelValue> assembleData(MultipartFile file) throws IOException {
+    public List<ExcelValue> assembleData(List<MultipartFile> files) throws IOException {
         try {
             XSSFWorkbook xfb = new XSSFWorkbook();
-            InputStream fis = file.getInputStream();
             List<ExcelValue> excelValues = new ArrayList<>();
-            xfb = new XSSFWorkbook(fis);
-            StringJoiner sj = new StringJoiner("-");
-            XSSFSheet sheetAt = xfb.getSheetAt(0);
-            String sheetName = StringUtils.isEmpty(sheetAt.getSheetName()) ? "原始数据" : sheetAt.getSheetName();
-            sj.add(sheetName);
-            Iterator<Row> iterator = sheetAt.rowIterator();
-            int rowNum = 0;
-            Row row = null;
+            for (MultipartFile file : files) {
+                InputStream fis = file.getInputStream();
+                xfb = new XSSFWorkbook(fis);
+                StringJoiner sj = new StringJoiner("-");
+                XSSFSheet sheetAt = xfb.getSheetAt(0);
+                String sheetName = StringUtils.isEmpty(sheetAt.getSheetName()) ? "原始数据" : sheetAt.getSheetName();
+                sj.add(sheetName);
+                Iterator<Row> iterator = sheetAt.rowIterator();
+                int rowNum = 0;
+                Row row = null;
 
-            while (iterator.hasNext()) {
-                row = iterator.next();
-                if (rowNum > 0) {
-                    String mx = (row.getCell(1) == null || StringUtils.isEmpty(ExcelUtil.getCellValue(row.getCell(1)))) ? "" : new BigDecimal(ExcelUtil.getCellValue(row.getCell(1))).setScale(2, RoundingMode.DOWN).toString();
-                    String power = (row.getCell(2) == null || StringUtils.isEmpty(ExcelUtil.getCellValue(row.getCell(2)))) ? "" : new BigDecimal(ExcelUtil.getCellValue(row.getCell(2))).setScale(2, RoundingMode.DOWN).toString();
-                    ExcelValue ev = new ExcelValue();
-                    ev.setMx(mx);
-                    ev.setPower(power);
-                    excelValues.add(ev);
-                    String mx1 = (row.getCell(4) == null || StringUtils.isEmpty(ExcelUtil.getCellValue(row.getCell(4)))) ? "" : new BigDecimal(ExcelUtil.getCellValue(row.getCell(4))).setScale(2, RoundingMode.DOWN).toString();
-                    String middle = (row.getCell(5) == null || StringUtils.isEmpty(ExcelUtil.getCellValue(row.getCell(5)))) ? "" : new BigDecimal(ExcelUtil.getCellValue(row.getCell(5))).setScale(2, RoundingMode.DOWN).toString();
-                    ExcelValue ev1 = new ExcelValue();
-                    ev1.setMx(mx1);
-                    ev1.setMiddle(middle);
-                    excelValues.add(ev1);
-                    String mx2 = (row.getCell(7) == null || StringUtils.isEmpty(ExcelUtil.getCellValue(row.getCell(7)))) ? "" : new BigDecimal(ExcelUtil.getCellValue(row.getCell(7))).setScale(2, RoundingMode.DOWN).toString();
-                    String thin = (row.getCell(8) == null || StringUtils.isEmpty(ExcelUtil.getCellValue(row.getCell(8)))) ? "" : new BigDecimal(ExcelUtil.getCellValue(row.getCell(8))).setScale(2, RoundingMode.DOWN).toString();
-                    ExcelValue ev2 = new ExcelValue();
-                    ev2.setMx(mx2);
-                    ev2.setThin(thin);
-                    excelValues.add(ev2);
-                }
-                rowNum++;
-            }
-            //取出所有mz值
-            List<String> mx = excelValues.stream().map(ExcelValue::getMx).distinct().collect(Collectors.toList());
-            //按照所有mz分组
-            Map<String, List<ExcelValue>> collect = excelValues.stream().collect(Collectors.groupingBy(ExcelValue::getMx));
-            List<ExcelValue> excelValueList = new ArrayList<>();
-            for (String s : mx) {
-                List<ExcelValue> values = collect.get(s);
-                ExcelValue ev = new ExcelValue();
-                ev.setMx(s);
-                for (ExcelValue value : values) {
-                    String power = value.getPower();
-                    String middle = value.getMiddle();
-                    String thin = value.getThin();
-                    if (!StringUtils.isEmpty(power)) {
+                while (iterator.hasNext()) {
+                    row = iterator.next();
+                    if (rowNum > 0) {
+                        String mx = (row.getCell(1) == null || StringUtils.isEmpty(ExcelUtil.getCellValue(row.getCell(1)))) ? "" : new BigDecimal(ExcelUtil.getCellValue(row.getCell(1))).setScale(2, RoundingMode.DOWN).toString();
+                        String power = (row.getCell(2) == null || StringUtils.isEmpty(ExcelUtil.getCellValue(row.getCell(2)))) ? "" : new BigDecimal(ExcelUtil.getCellValue(row.getCell(2))).setScale(2, RoundingMode.DOWN).toString();
+                        ExcelValue ev = new ExcelValue();
+                        ev.setMx(mx);
                         ev.setPower(power);
+                        excelValues.add(ev);
+                        String mx1 = (row.getCell(4) == null || StringUtils.isEmpty(ExcelUtil.getCellValue(row.getCell(4)))) ? "" : new BigDecimal(ExcelUtil.getCellValue(row.getCell(4))).setScale(2, RoundingMode.DOWN).toString();
+                        String middle = (row.getCell(5) == null || StringUtils.isEmpty(ExcelUtil.getCellValue(row.getCell(5)))) ? "" : new BigDecimal(ExcelUtil.getCellValue(row.getCell(5))).setScale(2, RoundingMode.DOWN).toString();
+                        ExcelValue ev1 = new ExcelValue();
+                        ev1.setMx(mx1);
+                        ev1.setMiddle(middle);
+                        excelValues.add(ev1);
+                        String mx2 = (row.getCell(7) == null || StringUtils.isEmpty(ExcelUtil.getCellValue(row.getCell(7)))) ? "" : new BigDecimal(ExcelUtil.getCellValue(row.getCell(7))).setScale(2, RoundingMode.DOWN).toString();
+                        String thin = (row.getCell(8) == null || StringUtils.isEmpty(ExcelUtil.getCellValue(row.getCell(8)))) ? "" : new BigDecimal(ExcelUtil.getCellValue(row.getCell(8))).setScale(2, RoundingMode.DOWN).toString();
+                        ExcelValue ev2 = new ExcelValue();
+                        ev2.setMx(mx2);
+                        ev2.setThin(thin);
+                        excelValues.add(ev2);
                     }
-                    if (!StringUtils.isEmpty(middle)) {
-                        ev.setMiddle(middle);
-                    }
-                    if (!StringUtils.isEmpty(thin)) {
-                        ev.setThin(thin);
-                    }
+                    rowNum++;
                 }
-                excelValueList.add(ev);
             }
-            excelValueList = processExcelValueList(excelValueList);
-            return excelValueList;
-        } catch (Exception e) {
+                //取出所有mz值
+                List<String> mx = excelValues.stream().map(ExcelValue::getMx).distinct().collect(Collectors.toList());
+                //按照所有mz分组
+                Map<String, List<ExcelValue>> collect = excelValues.stream().collect(Collectors.groupingBy(ExcelValue::getMx));
+                List<ExcelValue> excelValueList = new ArrayList<>();
+                for (String s : mx) {
+                    List<ExcelValue> values = collect.get(s);
+                    ExcelValue ev = new ExcelValue();
+                    ev.setMx(s);
+                    for (ExcelValue value : values) {
+                        String power = value.getPower();
+                        String middle = value.getMiddle();
+                        String thin = value.getThin();
+                        if (!StringUtils.isEmpty(power)) {
+                            ev.setPower(power);
+                        }
+                        if (!StringUtils.isEmpty(middle)) {
+                            ev.setMiddle(middle);
+                        }
+                        if (!StringUtils.isEmpty(thin)) {
+                            ev.setThin(thin);
+                        }
+                    }
+                    excelValueList.add(ev);
+                }
+                excelValueList = processExcelValueList(excelValueList);
+                return excelValueList;
+
+        } catch(Exception e){
             System.out.println(e.getMessage());
             return null;
         }
-
     }
 
     //原始数据中如果出现重复数据则对重复数据进行处理取最大的那个
