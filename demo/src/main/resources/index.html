@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload and Download</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+       .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 400px;
+            text-align: center;
+        }
+
+        h1,
+        h2 {
+            color: #333;
+        }
+
+       .upload-section {
+            margin-top: 20px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        button {
+            background-color: #007BFF;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        p {
+            color: #777;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>File Upload and Download</h1>
+        <div class="upload-section">
+            <input type="file" id="fileInput1">
+            <button id="uploadButton1">上传原数据文件</button>
+            <p id="uploadedFileName1"></p>
+        </div>
+        <div class="upload-section">
+            <input type="file" id="fileInput2">
+            <button id="uploadButton2">上传数据库文件</button>
+            <p id="uploadedFileName2"></p>
+        </div>
+        <button id="submitButton">确定</button>
+        <p id="statusMessage"></p>
+    </div>
+    <script>
+        const fileInput1 = document.getElementById('fileInput1');
+        const fileInput2 = document.getElementById('fileInput2');
+        const uploadButton1 = document.getElementById('uploadButton1');
+        const uploadButton2 = document.getElementById('uploadButton2');
+        const submitButton = document.getElementById('submitButton');
+        const uploadedFileName1 = document.getElementById('uploadedFileName1');
+        const uploadedFileName2 = document.getElementById('uploadedFileName2');
+        const statusMessage = document.getElementById('statusMessage');
+
+        uploadButton1.addEventListener('click', function () {
+            fileInput1.click();
+        });
+
+        uploadButton2.addEventListener('click', function () {
+            fileInput2.click();
+        });
+
+        fileInput1.addEventListener('change', function () {
+            const file = fileInput1.files[0];
+            if (file) {
+                uploadedFileName1.textContent = `Selected file: ${file.name}`;
+            } else {
+                uploadedFileName1.textContent = '';
+            }
+        });
+
+        fileInput2.addEventListener('change', function () {
+            const file = fileInput2.files[0];
+            if (file) {
+                uploadedFileName2.textContent = `Selected file: ${file.name}`;
+            } else {
+                uploadedFileName2.textContent = '';
+            }
+        });
+
+        submitButton.addEventListener('click', async () => {
+            const file1 = fileInput1.files[0];
+            const file2 = fileInput2.files[0];
+
+            if (!file1 || !file2) {
+                statusMessage.textContent = '请上传两个文件！';
+                statusMessage.style.color = 'red';
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file1', file1);
+            formData.append('file2', file2);
+
+            try {
+                const response = await fetch('http://localhost:8080/sjcl/1', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = '处理结果';
+                a.click();
+                window.URL.revokeObjectURL(url);
+
+                statusMessage.textContent = '文件上传并下载成功！';
+                statusMessage.style.color = 'green';
+            } catch (error) {
+                statusMessage.textContent = `上传请求错误: ${error}`;
+                statusMessage.style.color = 'red';
+            }
+        });
+    </script>
+</body>
+
+</html>    
