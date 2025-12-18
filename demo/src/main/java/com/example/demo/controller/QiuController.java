@@ -3,8 +3,10 @@ package com.example.demo.controller;
 
 import com.example.demo.util.ExcelUtil;
 import com.example.demo.util.ExcelValue;
+import com.google.common.base.Splitter;
 import io.micrometer.common.util.StringUtils;
 import jakarta.servlet.http.HttpServletResponse;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.CellValue;
 import org.apache.poi.ss.usermodel.FormulaEvaluator;
@@ -17,26 +19,37 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 @RestController
 @RequestMapping("/sjcl")
 public class QiuController {
+    // 缓存每次生成的Excel字节流和对应文件名
+    private List<ExcelData> excelDataList = new ArrayList<>();
 
+    // 内部类：存储Excel字节流和文件名
+    private static class ExcelData {
+        private byte[] excelBytes; // Excel字节数组
+        private String fileName;   // Excel文件名（无后缀）
+
+        public ExcelData(byte[] excelBytes, String fileName) {
+            this.excelBytes = excelBytes;
+            this.fileName = fileName;
+        }
+    }
     @PostMapping("1")
     public void qiuSjCl(HttpServletResponse response, @RequestParam("files") List<MultipartFile> files,@RequestParam("file2") MultipartFile file2) throws IOException {
-        List<ExcelValue> excelValues = assembleData(files);
-        matchDataBaseData(excelValues, file2, response);
-
-    }
-
-    //处理原始数据
-    public List<ExcelValue> assembleData(List<MultipartFile> files) throws IOException {
         try {
             XSSFWorkbook xfb = new XSSFWorkbook();
             List<ExcelValue> excelValues = new ArrayList<>();
@@ -75,7 +88,6 @@ public class QiuController {
                     }
                     rowNum++;
                 }
-            }
                 //取出所有mz值
                 List<String> mx = excelValues.stream().map(ExcelValue::getMx).distinct().collect(Collectors.toList());
                 //按照所有mz分组
@@ -102,13 +114,20 @@ public class QiuController {
                     excelValueList.add(ev);
                 }
                 excelValueList = processExcelValueList(excelValueList);
-                return excelValueList;
-
+                matchDataBaseData(excelValueList, file2, response,file.getOriginalFilename(),files.size());
+                excelValueList.clear();
+            }
+            if(CollectionUtils.isNotEmpty(files)&&files.size()>1){
+                exportAllToZip(response,"处理文件");
+            }
         } catch(Exception e){
-            System.out.println(e.getMessage());
-            return null;
+            System.out.println(e);
         }
+
+
     }
+
+
 
     //原始数据中如果出现重复数据则对重复数据进行处理取最大的那个
     public static List<ExcelValue> processExcelValueList(List<ExcelValue> excelValueList) {
@@ -141,7 +160,7 @@ public class QiuController {
     }
 
     //匹配数据库数据后输出最终文件
-    public void matchDataBaseData(List<ExcelValue> excelValues, MultipartFile file, HttpServletResponse response) throws IOException {
+    public void matchDataBaseData(List<ExcelValue> excelValues, MultipartFile file, HttpServletResponse response,String fileName,Integer fileCount) throws IOException {
         Map<String, List<ExcelValue>> collect = excelValues.stream().collect(Collectors.groupingBy(ExcelValue::getMx));
         Set<String> strings = collect.keySet();
         InputStream fis = file.getInputStream();
@@ -227,7 +246,12 @@ public class QiuController {
                 row.getCell(19).setCellValue("弱");
             }
         }
-        ExportLoadExcel(response, xssfWorkbook, "ManipulateData");
+
+        if(fileCount>1){
+            addExcel(xssfWorkbook,Splitter.on(".").splitToList(fileName).get(0)+"处理文件");
+        }else {
+            ExportLoadExcel(response, xssfWorkbook, "ManipulateData");
+        }
     }
 
     public Row checkRowExist(Row row, Integer startIndex, Integer endIndex) {
@@ -238,7 +262,70 @@ public class QiuController {
         }
         return row;
     }
+    public void addExcel(XSSFWorkbook xssfWorkbook, String fileName) throws IOException {
+        if (xssfWorkbook == null || fileName == null || fileName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Excel工作簿和文件名不能为空");
+        }
 
+        // 将Excel写入字节数组（缓存到内存）
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            xssfWorkbook.write(baos);
+            excelDataList.add(new ExcelData(baos.toByteArray(), fileName.trim()));
+        } finally {
+            xssfWorkbook.close(); // 释放POI资源
+        }
+    }
+
+    public void exportAllToZip(HttpServletResponse response, String zipFileName) throws IOException {
+        if (excelDataList.isEmpty()) {
+            throw new IllegalStateException("未添加任何Excel文件，无法打包ZIP");
+        }
+
+        // 1. 设置ZIP响应头
+        response.setContentType("application/zip");
+        response.setHeader("Access-Control-Allow-Origin", "*");
+        response.setCharacterEncoding("utf-8");
+        String encodedZipName = URLEncoder.encode(zipFileName, StandardCharsets.UTF_8.name())
+                .replaceAll("\\+", "%20");
+        response.setHeader("Content-Disposition", "attachment;filename*=utf-8''" + encodedZipName + ".zip");
+        response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+
+        // 2. 打包所有缓存的Excel为ZIP并写入响应
+        try (OutputStream responseOs = response.getOutputStream();
+             ZipOutputStream zipOs = new ZipOutputStream(responseOs)) {
+
+            for (ExcelData excelData : excelDataList) {
+                // 创建ZIP条目（每个Excel在ZIP内的名称）
+                ZipEntry zipEntry = new ZipEntry(excelData.fileName + ".xlsx");
+                zipOs.putNextEntry(zipEntry);
+                // 写入Excel字节流
+                zipOs.write(excelData.excelBytes);
+                zipOs.closeEntry();
+            }
+
+            zipOs.flush();
+        } finally {
+            // 清理缓存，避免重复下载
+            excelDataList.clear();
+        }
+    }
+
+    // ====================== 兼容原有单次导出方法 ======================
+    public void exportSingleExcel(HttpServletResponse response, XSSFWorkbook xssfWorkbook, String fileName) throws IOException {
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setHeader("Access-Control-Allow-Origin", "*");
+        response.setCharacterEncoding("utf-8");
+        String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8.name())
+                .replaceAll("\\+", "%20");
+        response.setHeader("Content-Disposition", "attachment;filename*=utf-8''" + encodedFileName + ".xlsx");
+
+        try (OutputStream os = response.getOutputStream()) {
+            xssfWorkbook.write(os);
+            os.flush();
+        } finally {
+            xssfWorkbook.close();
+        }
+    }
     public void ExportLoadExcel(HttpServletResponse response, XSSFWorkbook xssfWorkbook, String fileName) throws IOException {
 //        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         response.setContentType("application/vnd.ms-excel");

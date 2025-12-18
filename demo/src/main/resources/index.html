@@ -76,7 +76,7 @@
             <!-- 单文件选择区域 -->
             <div class="space-y-4 pt-4 border-t border-gray-100">
                 <h2 class="text-xl font-semibold text-gray-800 flex items-center">
-                    <i class="fa fa-file-o text-secondary mr-2"></i>数据文件选择
+                    <i class="fa fa-file-o text-secondary mr-2"></i>数据库文件选择
                 </h2>
 
                 <button id="selectSingleFile" class="w-full py-4 px-6 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 font-medium flex items-center justify-center gap-3 file-hover btn-effect">
@@ -288,7 +288,28 @@
                 throw new Error('上传失败');
             }
 
-            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            // 优化：从响应头获取后端指定的文件名（若后端设置了）
+            const contentDisposition = response.headers.get('Content-Disposition');
+            let fileName = '处理结果';
+            if (contentDisposition) {
+                const match = contentDisposition.match(/filename="?([^";]+)"?/);
+                if (match && match[1]) {
+                    fileName = decodeURIComponent(match[1]); // 解码中文文件名
+                }
+            }
+            a.download = fileName;
+            a.click();
+            window.URL.revokeObjectURL(url);
+
             showToast('文件上传成功！');
 
             // 重置表单
