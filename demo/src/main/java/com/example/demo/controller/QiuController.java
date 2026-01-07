@@ -206,44 +206,48 @@ public class QiuController {
                     }
                 }
                 if (strings.contains(eValue)) {
-                    checkRowExist(row, 5, 7);
+                    checkRowExist(row, 5, 8);
                     List<ExcelValue> values = collect.get(eValue);
 
-                    row.getCell(5).setCellValue(values.get(0).getPower());
-                    row.getCell(6).setCellValue(values.get(0).getMiddle());
-                    row.getCell(7).setCellValue(values.get(0).getThin());
+                    row.getCell(5).setCellValue(values.get(0).getMx());
+                    row.getCell(6).setCellValue(values.get(0).getPower());
+                    row.getCell(7).setCellValue(values.get(0).getMiddle());
+                    row.getCell(8).setCellValue(values.get(0).getThin());
                 }
 
                 if (strings.contains(kValue)) {
-                    checkRowExist(row, 11, 13);
+                    checkRowExist(row, 11, 14);
                     List<ExcelValue> values = collect.get(kValue);
-                    row.getCell(11).setCellValue(values.get(0).getPower());
-                    row.getCell(12).setCellValue(values.get(0).getMiddle());
-                    row.getCell(13).setCellValue(values.get(0).getThin());
+                    row.getCell(11).setCellValue(values.get(0).getMx());
+                    row.getCell(12).setCellValue(values.get(0).getPower());
+                    row.getCell(13).setCellValue(values.get(0).getMiddle());
+                    row.getCell(14).setCellValue(values.get(0).getThin());
                 }
 
                 if (strings.contains(qValue)) {
-                    checkRowExist(row, 17, 19);
+                    checkRowExist(row, 17, 20);
                     List<ExcelValue> values = collect.get(qValue);
-                    row.getCell(17).setCellValue(values.get(0).getPower());
-                    row.getCell(18).setCellValue(values.get(0).getMiddle());
-                    row.getCell(19).setCellValue(values.get(0).getThin());
+                    row.getCell(17).setCellValue(values.get(0).getMx());
+                    row.getCell(18).setCellValue(values.get(0).getPower());
+                    row.getCell(19).setCellValue(values.get(0).getMiddle());
+                    row.getCell(20).setCellValue(values.get(0).getThin());
                 }
             } else {
-                checkRowExist(row, 5, 7);
-                row.getCell(5).setCellValue("强");
-                row.getCell(6).setCellValue("中");
-                row.getCell(7).setCellValue("弱");
-
-                checkRowExist(row, 11, 13);
-                row.getCell(11).setCellValue("强");
-                row.getCell(12).setCellValue("中");
-                row.getCell(13).setCellValue("弱");
-
-                checkRowExist(row, 17, 19);
-                row.getCell(17).setCellValue("强");
-                row.getCell(18).setCellValue("中");
-                row.getCell(19).setCellValue("弱");
+                this.checkRowExist(row, 5, 8);
+                row.getCell(5).setCellValue("m/z(若数据来源源自多个，则按照强中弱由左到右展示来源信息)");
+                row.getCell(6).setCellValue("强");
+                row.getCell(7).setCellValue("中");
+                row.getCell(8).setCellValue("弱");
+                this.checkRowExist(row, 11, 14);
+                row.getCell(11).setCellValue("m/z(若数据来源源自多个，则按照强中弱由左到右展示来源信息)");
+                row.getCell(12).setCellValue("强");
+                row.getCell(13).setCellValue("中");
+                row.getCell(14).setCellValue("弱");
+                this.checkRowExist(row, 17, 20);
+                row.getCell(17).setCellValue("m/z(若数据来源源自多个，则按照强中弱由左到右展示来源信息)");
+                row.getCell(18).setCellValue("强");
+                row.getCell(19).setCellValue("中");
+                row.getCell(20).setCellValue("弱");
             }
         }
 
